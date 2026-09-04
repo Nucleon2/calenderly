@@ -94,7 +94,7 @@ export interface SubmitBookingInput {
   answers: { questionId: string; value: string }[];
   rescheduleFromUid?: string;
   /** Honeypot field — must be empty for a real invitee. */
-  website?: string;
+  faxConfirm?: string;
   /** `Date.now()` when the booking form first rendered. */
   startedAt?: number;
 }
@@ -110,7 +110,7 @@ export type SubmitBookingResult = {
 
 const GENERIC_ERROR = "Something went wrong. Please try again.";
 const TEN_MINUTES_MS = 10 * 60 * 1000;
-const MIN_FORM_TIME_MS = 3000;
+const MIN_FORM_TIME_MS = 1500;
 
 async function firstIp(): Promise<string> {
   const h = await headers();
@@ -146,7 +146,7 @@ function formDataToInput(formData: FormData): SubmitBookingInput {
     inviteeTimezone: get("inviteeTimezone") ?? "",
     answers,
     rescheduleFromUid: get("rescheduleFromUid") || undefined,
-    website: get("website"),
+    faxConfirm: get("faxConfirm"),
     startedAt: startedAtRaw ? Number(startedAtRaw) : undefined,
   };
 }
@@ -164,10 +164,12 @@ export async function submitBookingAction(
   // Bot defenses: a filled honeypot or a form submitted implausibly fast
   // both fail with the same generic message, so bots can't tell which
   // check tripped.
-  if (input.website && input.website.trim().length > 0) {
+  if (input.faxConfirm && input.faxConfirm.trim().length > 0) {
+    console.warn("[bookings] submission rejected: honeypot filled", { eventTypeId: input.eventTypeId });
     return { ok: false, error: GENERIC_ERROR };
   }
   if (typeof input.startedAt === "number" && Date.now() - input.startedAt < MIN_FORM_TIME_MS) {
+    console.warn("[bookings] submission rejected: form submitted too fast", { eventTypeId: input.eventTypeId });
     return { ok: false, error: GENERIC_ERROR };
   }
 

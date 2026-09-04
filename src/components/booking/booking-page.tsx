@@ -189,7 +189,7 @@ export function BookingPage({
       inviteeTimezone: timezone,
       answers: values.answers,
       rescheduleFromUid: rescheduleUid,
-      website: values.website,
+      faxConfirm: values.faxConfirm,
       startedAt: values.startedAt,
     });
 

@@ -31,7 +31,7 @@ export interface BookingFormSubmitValues {
   inviteeEmail: string;
   answers: BookingAnswerInput[];
   /** Honeypot field — should always be empty for a real invitee. */
-  website: string;
+  faxConfirm: string;
   /** `Date.now()` when this form first rendered. */
   startedAt: number;
 }
@@ -53,7 +53,7 @@ type FormValues = {
   inviteeName: string;
   inviteeEmail: string;
   /** Honeypot — always empty for a real invitee. */
-  website: string;
+  faxConfirm: string;
 } & Record<`q_${string}`, string | string[] | boolean>;
 
 function questionKey(id: string): `q_${string}` {
@@ -70,7 +70,7 @@ function buildSchema(questions: BookingFormQuestion[]) {
   const shape: Record<string, z.ZodTypeAny> = {
     inviteeName: z.string().trim().min(1, "Your name is required").max(200),
     inviteeEmail: z.string().trim().min(1, "Your email is required").email("Enter a valid email address"),
-    website: z.string(),
+    faxConfirm: z.string(),
   };
 
   for (const q of questions) {
@@ -92,7 +92,7 @@ function buildSchema(questions: BookingFormQuestion[]) {
 }
 
 function defaultValuesFor(questions: BookingFormQuestion[]): FormValues {
-  const values = { inviteeName: "", inviteeEmail: "", website: "" } as FormValues;
+  const values = { inviteeName: "", inviteeEmail: "", faxConfirm: "" } as FormValues;
   for (const q of questions) {
     values[questionKey(q.id)] = q.type === "multiselect" ? [] : q.type === "checkbox" ? false : "";
   }
@@ -136,7 +136,7 @@ export function BookingForm({ questions, submitLabel = "Schedule event", onBack,
       inviteeName: values.inviteeName.trim(),
       inviteeEmail: values.inviteeEmail.trim(),
       answers,
-      website: values.website,
+      faxConfirm: values.faxConfirm,
       startedAt,
     });
 
@@ -156,8 +156,8 @@ export function BookingForm({ questions, submitLabel = "Schedule event", onBack,
       {/* Honeypot: visually hidden, never filled by a real invitee. Bots that
           auto-fill every field will trip it. */}
       <div className="absolute -left-[9999px] top-auto h-px w-px overflow-hidden" aria-hidden="true">
-        <label htmlFor="website">Website</label>
-        <input id="website" type="text" tabIndex={-1} autoComplete="off" {...register("website")} />
+        <label htmlFor="faxConfirm">Leave this field empty</label>
+        <input id="faxConfirm" type="text" tabIndex={-1} autoComplete="off" aria-hidden="true" data-lpignore="true" data-1p-ignore="true" {...register("faxConfirm")} />
       </div>
 
       <Field data-invalid={!!errors.inviteeName}>

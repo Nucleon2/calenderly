@@ -3,6 +3,8 @@ import { env } from "@/lib/env";
 
 declare global {
   var __jobsBoss: PgBoss | undefined;
+  var __jobsBossStart: Promise<void> | undefined;
+  var __jobsWorkersStarted: boolean | undefined;
 }
 
 /** Queue names. Every queue must be created via `boss.createQueue` before `send`/`work`. */
@@ -11,24 +13,45 @@ export const QUEUES = {
   calendarSync: "calendar.sync",
 } as const;
 
-// Reuse the boss instance across HMR reloads in development, same pattern as `db/client.ts`.
-let boss: PgBoss | undefined = globalThis.__jobsBoss;
-
-/** Returns the process-wide PgBoss singleton, constructing it on first use. Does not start it. */
+/**
+ * Returns the process-wide PgBoss singleton, constructing it on first use. Does not start it.
+ * Always cached on `globalThis`: in the production bundle the instrumentation hook and the
+ * request handlers load separate copies of this module, so a module-level variable would
+ * give each of them its own (unstarted) instance.
+ */
 export function getBoss(): PgBoss {
-  if (!boss) {
-    boss = new PgBoss({
+  if (!globalThis.__jobsBoss) {
+    globalThis.__jobsBoss = new PgBoss({
       connectionString: env.DATABASE_URL,
       schema: "pgboss",
       max: 5,
       application_name: "calendly-clone-jobs",
     });
-    if (env.NODE_ENV !== "production") globalThis.__jobsBoss = boss;
   }
-  return boss;
+  return globalThis.__jobsBoss;
 }
 
-let started = false;
+/**
+ * Returns the singleton after making sure it is started and every queue exists. Used by the
+ * enqueue paths (reminders, calendar sync) so they work even before/without the worker.
+ */
+export async function getStartedBoss(): Promise<PgBoss> {
+  const instance = getBoss();
+  if (!globalThis.__jobsBossStart) {
+    globalThis.__jobsBossStart = (async () => {
+      instance.on("error", (err: unknown) => console.error("[jobs] pg-boss error", err));
+      await instance.start();
+      for (const name of Object.values(QUEUES)) {
+        await instance.createQueue(name);
+      }
+    })().catch((err) => {
+      globalThis.__jobsBossStart = undefined;
+      throw err;
+    });
+  }
+  await globalThis.__jobsBossStart;
+  return instance;
+}
 
 /**
  * Starts pg-boss, creates every queue, and registers the workers. Idempotent — safe to call
@@ -37,26 +60,22 @@ let started = false;
  */
 export async function startJobs(): Promise<void> {
   if (process.env.DISABLE_JOBS === "true") return;
-  if (started) return;
+  if (globalThis.__jobsWorkersStarted) return;
 
-  const instance = getBoss();
-  instance.on("error", (err: unknown) => console.error("[jobs] pg-boss error", err));
-
-  await instance.start();
-  for (const name of Object.values(QUEUES)) {
-    await instance.createQueue(name);
-  }
-
+  const instance = await getStartedBoss();
   const { registerWorkers } = await import("./worker");
   await registerWorkers(instance);
 
-  started = true;
+  globalThis.__jobsWorkersStarted = true;
   console.log("[jobs] started", { queues: Object.values(QUEUES) });
 }
 
 /** Stops the worker/polling loops and closes the pg-boss connection pool. */
 export async function stopJobs(): Promise<void> {
-  if (!boss) return;
-  await boss.stop({ graceful: true });
-  started = false;
+  const instance = globalThis.__jobsBoss;
+  if (!instance) return;
+  await instance.stop({ graceful: true });
+  globalThis.__jobsBoss = undefined;
+  globalThis.__jobsBossStart = undefined;
+  globalThis.__jobsWorkersStarted = false;
 }

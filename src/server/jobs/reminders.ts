@@ -1,6 +1,6 @@
 import { sql } from "drizzle-orm";
 import { db } from "@/db/client";
-import { getBoss, QUEUES } from "./boss";
+import { getStartedBoss, QUEUES } from "./boss";
 
 export interface ReminderTarget {
   bookingId: string;
@@ -23,7 +23,7 @@ const MIN_LEAD_MS = 30_000;
  * already passed (or is within 30s) is skipped rather than sent immediately.
  */
 export async function scheduleReminders(target: ReminderTarget, offsetsMinutes: number[]): Promise<void> {
-  const boss = getBoss();
+  const boss = await getStartedBoss();
   const now = Date.now();
 
   for (const offsetMinutes of offsetsMinutes) {

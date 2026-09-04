@@ -123,7 +123,8 @@ This isn't wired up out of the box.
 port). Fix `APP_URL` in `.env` and restart the app container.
 
 **Emails aren't arriving.**
-Check `SMTP_HOST`, `SMTP_PORT`, `SMTP_SECURE`, `SMTP_USER`, `SMTP_PASS`, and `EMAIL_FROM` in
+If the app runs in Docker and you use the bundled Mailpit, set `SMTP_HOST=mailpit`: inside the
+app container `localhost` is the container itself. Otherwise check `SMTP_HOST`, `SMTP_PORT`, `SMTP_SECURE`, `SMTP_USER`, `SMTP_PASS`, and `EMAIL_FROM` in
 `.env`. Then check the app container's logs (`docker compose logs app`) for SMTP connection or
 authentication errors — Nodemailer logs the underlying error when a send fails.
 
