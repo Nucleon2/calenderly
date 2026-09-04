@@ -21,7 +21,7 @@ export default async function EventTypesPage() {
         title="Event types"
         description="The kinds of meetings people can book with you."
         actions={
-          <Button render={<Link href="/dashboard/event-types/new" />}>
+          <Button nativeButton={false} render={<Link href="/dashboard/event-types/new" />}>
             <Plus /> New event type
           </Button>
         }

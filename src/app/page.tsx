@@ -21,10 +21,10 @@ export default async function Home() {
           with you — all on infrastructure you own.
         </p>
         <div className="flex flex-col gap-3 sm:flex-row">
-          <Button render={<Link href="/sign-in" />} size="lg">
+          <Button nativeButton={false} render={<Link href="/sign-in" />} size="lg">
             Sign in
           </Button>
-          <Button render={<Link href="/sign-up" />} size="lg" variant="outline">
+          <Button nativeButton={false} render={<Link href="/sign-up" />} size="lg" variant="outline">
             Create account
           </Button>
         </div>

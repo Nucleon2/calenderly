@@ -10,13 +10,13 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run --project unit",
     "test:watch": "vitest --project unit",
-    "test:integration": "vitest run --project integration",
+    "test:integration": "vitest run --project integration --no-file-parallelism",
     "test:e2e": "playwright test",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
     "db:studio": "drizzle-kit studio",
     "db:seed": "tsx --env-file=.env src/db/seed.ts",
-    "test:all": "vitest run"
+    "test:all": "vitest run --no-file-parallelism"
   },
   "dependencies": {
     "@base-ui/react": "^1.8.0",

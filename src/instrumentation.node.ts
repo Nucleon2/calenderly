@@ -2,7 +2,7 @@ import path from "node:path";
 
 /**
  * - Applies pending Drizzle migrations when RUN_MIGRATIONS_ON_BOOT=true (Docker default).
- * - M5 adds the pg-boss worker start here.
+ * - Starts the pg-boss job queue (reminders, calendar sync); no-op when DISABLE_JOBS=true.
  */
 export async function boot() {
   const { env } = await import("@/lib/env");
@@ -12,4 +12,7 @@ export async function boot() {
     await migrate(db, { migrationsFolder: path.join(process.cwd(), "drizzle") });
     console.log("[boot] database migrations applied");
   }
+
+  const { startJobs } = await import("@/server/jobs");
+  await startJobs();
 }

@@ -51,7 +51,7 @@ export function EventTypeList({ eventTypes }: EventTypeListProps) {
         title="No event types yet"
         description="Create your first event type to start letting people book time with you."
         action={
-          <Button render={<Link href="/dashboard/event-types/new" />}>New event type</Button>
+          <Button nativeButton={false} render={<Link href="/dashboard/event-types/new" />}>New event type</Button>
         }
       />
     );
@@ -124,7 +124,7 @@ export function EventTypeList({ eventTypes }: EventTypeListProps) {
                       <MoreVertical className="size-4" />
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
-                      <DropdownMenuItem render={<Link href={`/dashboard/event-types/${eventType.id}`} />}>
+                      <DropdownMenuItem nativeButton={false} render={<Link href={`/dashboard/event-types/${eventType.id}`} />}>
                         <Pencil /> Edit
                       </DropdownMenuItem>
                       <DropdownMenuItem
