@@ -1,0 +1,29 @@
+# Drains the reminder and calendar-sync queues on serverless hosts (Vercel Hobby only allows
+# daily cron). GitHub's minimum schedule interval is 5 minutes and firing can lag a few minutes,
+# so reminders may be late by up to ~10 minutes. Requires the CRON_SECRET secret and the
+# APP_URL variable on the repo. See docs/self-hosting.md.
+name: Run background jobs
+
+on:
+  schedule:
+    - cron: "*/5 * * * *"
+  workflow_dispatch:
+
+concurrency:
+  group: run-jobs
+  cancel-in-progress: false
+
+jobs:
+  drain:
+    if: ${{ vars.APP_URL != '' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Call /api/jobs/run
+        env:
+          APP_URL: ${{ vars.APP_URL }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          curl --fail-with-body --silent --show-error --max-time 90 \
+            -H "Authorization: Bearer $CRON_SECRET" \
+            "$APP_URL/api/jobs/run"
