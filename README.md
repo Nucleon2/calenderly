@@ -55,7 +55,8 @@ it installed automatically via `docker/postgres-init/01-extensions.sql`); see
 
 ## Documentation
 
-- [Self-hosting guide](docs/self-hosting.md) — production deployment, HTTPS, backups, updates.
+- [Self-hosting guide](docs/self-hosting.md) — production deployment, HTTPS, backups, updates,
+  [deploying to Vercel](docs/self-hosting.md#deploying-to-vercel).
 - [Configuration reference](docs/configuration.md) — every environment variable, SMTP provider
   examples.
 - [Google Calendar setup](docs/google-calendar.md) — OAuth app, scopes, connecting an account.

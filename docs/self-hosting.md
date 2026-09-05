@@ -116,6 +116,41 @@ If you need to split the web process from the job worker later, both roles run f
 Docker image: the worker role would need `startJobs()` invoked without also serving HTTP traffic.
 This isn't wired up out of the box.
 
+## Deploying to Vercel
+
+Docker on a VPS is the primary target, but the app also runs on Vercel. Two things differ from
+the Docker setup: there's no long-lived process for background jobs, and migrations don't run on
+boot.
+
+1. **Provision a Postgres** the functions can reach (Neon, Supabase, Vercel Postgres, RDS, ...).
+   Use the provider's *pooled* connection string if it offers one — every warm function instance
+   opens its own connections. Enable `btree_gist` as described above.
+2. **Import the GitHub repo** in Vercel. The framework preset is Next.js; no build settings need
+   changing. `vercel.json` in the repo registers the cron job below.
+3. **Set the environment variables** from `.env.example` in the project settings:
+   `DATABASE_URL`, `APP_URL` (your `https://` Vercel domain), `BETTER_AUTH_SECRET`, the `SMTP_*`
+   variables and `EMAIL_FROM`, optionally `GOOGLE_CLIENT_ID`/`GOOGLE_CLIENT_SECRET`, and
+   `CRON_SECRET` (`openssl rand -hex 32`). Vercel passes `CRON_SECRET` to cron invocations
+   automatically.
+4. **Run the migrations.** Either set the project's Build Command to
+   `npm run db:migrate && npm run build` (the build container must be able to reach the
+   database), or set `RUN_MIGRATIONS_ON_BOOT=true` so each cold start applies pending
+   migrations before serving (idempotent, but adds latency to cold starts).
+5. **Deploy**, open `APP_URL`, and check `GET /api/health`.
+
+**Background jobs.** Reminder emails and Google Calendar sync are queued in Postgres (pg-boss).
+In Docker a polling worker inside the web process handles them; on Vercel that worker is
+disabled because the process is frozen between requests. Instead, `vercel.json` schedules
+`GET /api/jobs/run` every minute, which processes everything that's due and returns. On the Hobby
+plan Vercel Cron only runs once a day, which is useless for reminders — point an external
+scheduler (cron-job.org, a GitHub Actions schedule, a systemd timer on any box you own) at
+`https://<your-domain>/api/jobs/run?secret=<CRON_SECRET>` every minute instead. Reminders can be
+late by up to one scheduler interval.
+
+**Things that don't apply on Vercel.** `output: "standalone"` and `RUN_MIGRATIONS_ON_BOOT`
+defaults are Docker concerns; both are handled automatically when `VERCEL` is set. The booking
+rate limiter is per-instance memory, so it's weaker than on a single VPS.
+
 ## Troubleshooting
 
 **"Invalid origin" error at sign-in or sign-up.**

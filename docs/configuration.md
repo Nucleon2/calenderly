@@ -1,8 +1,10 @@
 # Configuration reference
 
-All configuration is environment variables, validated at startup by `src/lib/env.ts` (via zod).
-If a required variable is missing or invalid, the app fails fast with a list of the problems
-instead of starting in a broken state.
+All configuration is environment variables, validated by `src/lib/env.ts` (via zod) the first
+time any of them is read at runtime. If a required variable is missing or invalid, the app fails
+fast with a list of the problems instead of running in a broken state. `next build` deliberately
+skips this check so the app can be built on hosts (Vercel, Docker image builds) where the runtime
+configuration isn't available yet.
 
 ## Core
 
@@ -55,7 +57,9 @@ read directly from `process.env`.
 |---|---|---|---|
 | `RUN_MIGRATIONS_ON_BOOT` | No | `false` | When `true`, pending Drizzle migrations run automatically before the app starts serving requests (see `src/instrumentation.node.ts`). The Docker image and `docker-compose.yml` both set this to `true`; you generally don't need to set it yourself. |
 | `DISABLE_JOBS` | No | `false` (unset) | When set to the string `"true"`, skips starting the pg-boss job queue (reminders, calendar sync) entirely. Used by tests/CI so importing the job module doesn't spin up polling workers against the test database. Don't set this in a normal deployment — reminders and calendar sync won't run. |
-| `SKIP_ENV_VALIDATION` | No | unset | When set to `"1"`, skips zod validation of environment variables entirely and returns `process.env` as-is. Used only during the Docker image build step (`npm run build`), where no real runtime env is available yet. Never set this when actually running the app — a misconfigured deployment will fail in stranger ways than the validation error it's meant to produce. |
+| `CRON_SECRET` | On Vercel | unset | Bearer token required by `GET /api/jobs/run`, the endpoint a scheduler calls to process due reminder and calendar-sync jobs on serverless hosts. The endpoint refuses to run while this is unset. Vercel Cron sends it as `Authorization: Bearer <secret>`; other schedulers can also pass `?secret=<secret>`. See [self-hosting.md](self-hosting.md#deploying-to-vercel). |
+| `VERCEL` | No | set by Vercel | Detected automatically. When present, the in-process polling workers are not started (they can't survive between serverless invocations) and `next.config.ts` drops `output: "standalone"`, which only the Docker image needs. |
+| `SKIP_ENV_VALIDATION` | No | unset | When set to `"1"`, skips zod validation of environment variables entirely and returns `process.env` as-is. `next build` already skips validation on its own, so this is only needed for other tooling that imports app code without a real environment. Never set this when actually running the app — a misconfigured deployment will fail in stranger ways than the validation error it's meant to produce. |
 | `PORT` | No | `3000` | Port the Next.js server listens on. Set to `3000` in the Docker image; change it (and the corresponding `docker-compose.yml` port mapping) if you need a different internal port. |
 
 ## SMTP provider examples

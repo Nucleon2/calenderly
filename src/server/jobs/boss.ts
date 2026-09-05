@@ -56,10 +56,16 @@ export async function getStartedBoss(): Promise<PgBoss> {
 /**
  * Starts pg-boss, creates every queue, and registers the workers. Idempotent — safe to call
  * more than once. Skipped entirely when `DISABLE_JOBS=true` (used by tests/CI so a stray
- * import doesn't spin up polling workers against the test database).
+ * import doesn't spin up polling workers against the test database), and on Vercel, where the
+ * process is frozen between requests so polling workers can't run — there the queues are
+ * drained by a scheduler hitting `/api/jobs/run` instead (see `drain.ts`).
  */
 export async function startJobs(): Promise<void> {
   if (process.env.DISABLE_JOBS === "true") return;
+  if (process.env.VERCEL) {
+    console.log("[jobs] background workers disabled on Vercel; schedule /api/jobs/run instead");
+    return;
+  }
   if (globalThis.__jobsWorkersStarted) return;
 
   const instance = await getStartedBoss();

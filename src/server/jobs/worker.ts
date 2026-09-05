@@ -40,7 +40,7 @@ export async function registerWorkers(boss: PgBoss, deps: WorkerDeps = {}): Prom
   );
 }
 
-async function handleReminderJob(
+export async function handleReminderJob(
   data: ReminderJobData,
   ctx: { mailer: { sendBookingReminder: typeof sendBookingReminder }; now: () => Date },
 ): Promise<void> {
@@ -81,7 +81,7 @@ async function handleReminderJob(
   console.info("[jobs] reminder sent", { bookingId: data.bookingId, offsetMinutes: data.offsetMinutes });
 }
 
-async function handleCalendarSyncJob(data: CalendarSyncJobData): Promise<void> {
+export async function handleCalendarSyncJob(data: CalendarSyncJobData): Promise<void> {
   const rows = await db
     .select({ booking: bookings, eventType: eventTypes, host: user })
     .from(bookings)
